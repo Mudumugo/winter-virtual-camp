@@ -4,12 +4,13 @@ A comprehensive backend API for the Winter Virtual Camp educational platform bui
 
 ## Features
 
-- **Authentication & Authorization**: Role-based access control (Admin, Instructor, Student)
+- **Authentication & Authorization**: JWT + Session-based auth with role-based access control (Admin, Instructor, Student)
 - **Camp Management**: CRUD operations for educational camps
 - **User Registration**: Multi-step quiz-based enrollment system
 - **Real-time Features**: WebSocket support for live sessions and messaging
 - **File Storage**: MinIO integration for camp materials and user uploads
 - **Database**: PostgreSQL with Drizzle ORM
+- **Caching**: Redis integration for sessions and caching
 - **Docker Ready**: Complete containerization with docker-compose
 
 ## Quick Start
@@ -56,18 +57,23 @@ A comprehensive backend API for the Winter Virtual Camp educational platform bui
    ```
 
 3. **Access the application**
-   - Frontend: http://localhost:3000
+   - Frontend: http://localhost:12000
    - Backend API: http://localhost:5000
    - MinIO Console: http://localhost:9001
+   - PostgreSQL: localhost:5432
+   - Redis: localhost:6379
 
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/login` - User login
-- `POST /api/auth/demo-login` - Demo login by role
+- `POST /api/auth/login` - User login (returns JWT token)
+- `POST /api/auth/demo-login` - Demo login by role (returns JWT token)
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/logout` - User logout
 - `GET /api/auth/session` - Check session status
+- `GET /api/auth/me` - Get current user (JWT)
+- `POST /api/auth/refresh-token` - Refresh JWT token
+- `GET /api/auth/verify-token` - Verify JWT token
 
 ### Camps
 - `GET /api/camps` - List all camps (with filtering)

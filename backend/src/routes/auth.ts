@@ -6,6 +6,7 @@ import { eq } from 'drizzle-orm';
 import { validateRequest } from '../middleware/validation';
 import { body } from 'express-validator';
 import { logger } from '../utils/logger';
+import { generateToken, authenticateJWT, refreshToken, AuthenticatedRequest } from '../middleware/jwt';
 
 const router = Router();
 
@@ -66,7 +67,7 @@ router.post('/demo-login',
         return res.status(404).json({ error: 'Demo user not found for this role' });
       }
 
-      req.session.user = {
+      const userPayload = {
         id: demoUser.id,
         email: demoUser.email,
         firstName: demoUser.firstName,
@@ -76,11 +77,24 @@ router.post('/demo-login',
         tenantId: demoUser.tenantId,
       };
 
+      // Set session for backward compatibility
+      req.session.user = userPayload;
+
+      // Generate JWT token
+      const token = generateToken({
+        id: demoUser.id,
+        email: demoUser.email,
+        role: demoUser.role,
+        tenantId: demoUser.tenantId,
+      });
+
       logger.info(`Demo login successful for role: ${role}`);
 
       res.json({
         success: true,
-        user: req.session.user,
+        user: userPayload,
+        token,
+        expiresIn: '24h',
         message: `Logged in as demo ${role}`,
       });
     } catch (error) {
@@ -119,7 +133,7 @@ router.post('/login',
         return res.status(401).json({ error: 'Account is deactivated' });
       }
 
-      req.session.user = {
+      const userPayload = {
         id: user.id,
         email: user.email,
         firstName: user.firstName,
@@ -129,11 +143,24 @@ router.post('/login',
         tenantId: user.tenantId,
       };
 
+      // Set session for backward compatibility
+      req.session.user = userPayload;
+
+      // Generate JWT token
+      const token = generateToken({
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        tenantId: user.tenantId,
+      });
+
       logger.info(`Login successful for user: ${user.email}`);
 
       res.json({
         success: true,
-        user: req.session.user,
+        user: userPayload,
+        token,
+        expiresIn: '24h',
         message: 'Login successful',
       });
     } catch (error) {
@@ -213,6 +240,24 @@ router.post('/logout', (req: any, res) => {
   } else {
     res.json({ success: true, message: 'No active session' });
   }
+});
+
+// JWT-specific endpoints
+router.get('/me', authenticateJWT, (req: AuthenticatedRequest, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
+});
+
+router.post('/refresh-token', authenticateJWT, refreshToken);
+
+router.get('/verify-token', authenticateJWT, (req: AuthenticatedRequest, res) => {
+  res.json({
+    success: true,
+    valid: true,
+    user: req.user
+  });
 });
 
 export const authRoutes = router;

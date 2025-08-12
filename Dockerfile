@@ -1,5 +1,5 @@
-# Frontend Dockerfile for Next.js application
-FROM node:18-alpine
+# Multi-stage build for React frontend with Vite
+FROM node:18-alpine as build
 
 WORKDIR /app
 
@@ -15,8 +15,21 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Expose port
-EXPOSE 3000
+# Production stage with Nginx
+FROM nginx:alpine
 
-# Start the application
-CMD ["npm", "start"]
+# Copy built assets from build stage
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copy custom nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Expose port 80
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

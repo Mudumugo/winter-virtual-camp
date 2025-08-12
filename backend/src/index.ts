@@ -1,5 +1,4 @@
 import express from 'express';
-import session from 'express-session';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -7,7 +6,6 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import path from 'path';
-import connectPgSimple from 'connect-pg-simple';
 
 import { db } from './db';
 import { initializeBuckets } from './storage/minioClient';
@@ -28,7 +26,6 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 5000;
-const PgSession = connectPgSimple(session);
 
 app.use(helmet({
   contentSecurityPolicy: {
@@ -57,22 +54,6 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
-app.use(session({
-  store: new PgSession({
-    conString: process.env.DATABASE_URL,
-    tableName: 'session',
-    createTableIfMissing: true,
-  }),
-  secret: process.env.SESSION_SECRET || 'winter-camp-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-  },
-}));
 
 app.get('/api/health', (req, res) => {
   res.json({ 
