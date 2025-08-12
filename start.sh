@@ -46,11 +46,33 @@ if ! docker info >/dev/null 2>&1; then
     exit 1
 fi
 
-# Check if docker-compose is available
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ docker-compose is not installed. Please install docker-compose first."
+# Check if docker compose is available (try modern syntax first, then legacy)
+DOCKER_COMPOSE_CMD=""
+if docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+else
+    echo "❌ Docker Compose is not available. Please install Docker Compose first."
     exit 1
 fi
+
+echo "✅ Using: $DOCKER_COMPOSE_CMD"
+
+# Validate docker-compose.yml
+echo ""
+echo "🔍 Validating docker-compose.yml..."
+if ! $DOCKER_COMPOSE_CMD config > /dev/null 2>&1; then
+    echo "❌ docker-compose.yml validation failed. Please check the file format."
+    echo "   Common issues:"
+    echo "   - YAML uses tabs instead of spaces"
+    echo "   - Incorrect indentation"
+    echo "   - Missing quotes around values"
+    echo ""
+    echo "   Try running: $DOCKER_COMPOSE_CMD config"
+    exit 1
+fi
+echo "✅ docker-compose.yml is valid"
 
 echo ""
 echo "🔍 Checking port availability..."
@@ -84,8 +106,8 @@ fi
 echo ""
 echo "🐳 Starting Docker services..."
 
-# Start all services with docker-compose
-docker-compose up -d
+# Start all services with docker compose
+$DOCKER_COMPOSE_CMD up -d
 
 echo ""
 echo "⏳ Waiting for services to be ready..."
@@ -103,10 +125,10 @@ sleep 5
 
 # Run database migrations and seeding
 echo "📊 Running database migrations..."
-docker-compose exec -T backend npm run db:migrate
+$DOCKER_COMPOSE_CMD exec -T backend npm run db:migrate
 
 echo "🌱 Seeding database with sample data..."
-docker-compose exec -T backend npm run db:seed
+$DOCKER_COMPOSE_CMD exec -T backend npm run db:seed
 
 echo ""
 echo "⏳ Waiting for backend API to be ready..."
